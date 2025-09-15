@@ -1,0 +1,19 @@
+{
+  "name": "war-jkt48-auth-server",
+  "version": "2.1.0",
+  "description": "API Key generator & validator for WAR JKT48 Extension - One time use, expire option",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1"
+  }
+}

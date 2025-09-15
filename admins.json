@@ -1,0 +1,14 @@
+[
+  {
+    "username": "raey",
+    "password": "$2b$10$Vup6IcBcKzQxo5TlCyL0ROtQdWp02Fk0Niw0OhFLFcjDUTPOmT..a",
+    "role": "superadmin",
+    "approved": true
+  },
+  {
+    "username": "mangun",
+    "password": "$2b$10$xyNYrNqlEkXlDvGH6YAx5.M.Q0nolXjD4dJGQYG.C7aSOruGUdHiO",
+    "role": "admin",
+    "approved": true
+  }
+]
